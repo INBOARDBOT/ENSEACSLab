@@ -6,9 +6,6 @@ const char* shellWelcomeMsg = "Welcome to ENSEA magic Shell.\nType 'exit' to qui
 
 
 int main(int argc, char *argv[]) {
-    char buffer[BUFFER_SIZE]; // buffer memory to store incoming user's instruction(s) max BUFFER_SIZE times bytes
-    ssize_t bytes_read;       // single byte read (8 bits)
-
     /*
     * writes shellWelcomeMsg an uint8_t pointer of size strlen(shellWelcomeMsg) to file descriptor
     * STDOUT_FILENO : stand for POSIX's standard output screen
