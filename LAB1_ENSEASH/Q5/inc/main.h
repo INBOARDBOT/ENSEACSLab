@@ -54,4 +54,7 @@ void doFortuneCmdMethod(void);
 void doExitCmdMethod(void);
 void executeExternalCommand(const char* cmd);
 
+// PROCESS FUNC //
+void appendStatus(char *prompt, const char *type, int value, long timeMs);
+
 #endif 

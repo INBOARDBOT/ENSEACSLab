@@ -68,15 +68,39 @@ void shellWritePrompt(const char* shellprompt){
 
 // SHELL PROMPTS //
 void shellnamePrompt(void){
-    char prompt[BUFFER_SIZE];
+    char prompt[BUFFER_SIZE] = "enseash";
+    
     if (WIFEXITED(shellcmdexit)) {
-        snprintf(prompt, sizeof(prompt), "enseash [exit:%d] %% ", WEXITSTATUS(shellcmdexit));
+        appendStatus(prompt, "exit", WEXITSTATUS(shellcmdexit), execProcTime);
     } else if (WIFSIGNALED(shellcmdexit)) {
-        snprintf(prompt, sizeof(prompt), "enseash [sign:%d] %% ", WTERMSIG(shellcmdexit));
-    } else {
-        snprintf(prompt, sizeof(prompt), "%s", shellNameMsg);
+        appendStatus(prompt, "sign", WTERMSIG(shellcmdexit), execProcTime);
     }
+
+    strcat(prompt, " % ");
     shellWritePrompt(prompt);
+}
+
+void appendStatus(char *prompt, const char *type, int value, long timeMs) {
+    char valStr[4];
+    if (value >= 100) {
+        valStr[0] = '0' + (value / 100);
+        valStr[1] = '0' + ((value % 100) / 10);
+        valStr[2] = '0' + (value % 10);
+        valStr[3] = '\0';
+    } else if (value >= 10) {
+        valStr[0] = '0' + (value / 10);
+        valStr[1] = '0' + (value % 10);
+        valStr[2] = '\0';
+    } else {
+        valStr[0] = '0' + value;
+        valStr[1] = '\0';
+    }
+
+    char timeStr[16];
+    sprintf(timeStr, "%s:%s|%ldms", type, valStr, timeMs);
+    strcat(prompt, " [");
+    strcat(prompt, timeStr);
+    strcat(prompt, "]");
 }
 
 
