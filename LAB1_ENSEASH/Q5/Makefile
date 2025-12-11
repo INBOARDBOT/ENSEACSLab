@@ -16,7 +16,7 @@ TARGET := enseash
 
 all: $(TARGET)
 
-# enseash as the exec of all .o object from compiled .c and .h
+# enseash as the exec of all .o object from compile d.c and .h
 $(TARGET): $(OBJS)
 	$(GCC) $(FLAGS) -o $@ $^
 

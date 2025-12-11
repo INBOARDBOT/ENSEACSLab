@@ -20,12 +20,15 @@ int manageUserCmd(const char* cmd){
     if (strncmp(cmd, shellFortuneCmd, strlen(shellFortuneCmd)) == 0) {
         doFortuneCmdMethod();
         shellcmdexit = 0;
+        execProcTime = 0;
     } else if (strncmp(cmd, shellDateCmd, strlen(shellDateCmd)) == 0) {
         doDateCmdMethod();
         shellcmdexit = 0;
+        execProcTime = 0;
     } else if (strncmp(cmd, shellExitCmd, strlen(shellExitCmd)) == 0) {
         doExitCmdMethod();
         shellcmdexit = 0;
+        execProcTime = 0;
         return -1; 
     } else {
         executeExternalCommand(cmd);
@@ -114,6 +117,9 @@ void doExitCmdMethod(void){
 }
 
 void executeExternalCommand(const char* cmd) {
+    struct timespec start, end;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    
     pid_t pid = fork();
     if (pid == 0) {
         execlp(cmd, cmd, (char*)NULL);
@@ -122,8 +128,14 @@ void executeExternalCommand(const char* cmd) {
         int status;
         waitpid(pid, &status, 0);
         shellcmdexit = status;
+        clock_gettime(CLOCK_MONOTONIC, &end);
+
+        long seconds = end.tv_sec - start.tv_sec;
+        long nanoseconds = end.tv_nsec - start.tv_nsec;
+        execProcTime = seconds * 1000 + nanoseconds / 1000000;
     } else {
         perror("fork");
         shellcmdexit = -1;
+        execProcTime = 0;
     }
 }

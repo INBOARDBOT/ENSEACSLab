@@ -1,60 +1,80 @@
 #include "main.h"
 
 
-int main(int argc, char *argv[]) {
-    char buffer[BUFFER_SIZE]; // buffer memory to store incoming user's instruction(s) max BUFFER_SIZE times bytes
-    ssize_t bytes_read;       // single byte read (8 bits)
+int main(int /*argc*/, char** /*argv*/) {
 
-    /*
-    * writes shellWelcomeMsg an uint8_t pointer of size strlen(shellWelcomeMsg) to file descriptor
-    * STDOUT_FILENO : stand for POSIX's standard output screen
-    */ 
-    write(STDOUT_FILENO, shellWelcomeMsg, strlen(shellWelcomeMsg)); 
+    int shellState;
+    shellInit();
 
-    
     while (1) {
-        // Basic display prompt of 'shellName'
-        write(STDOUT_FILENO, shellName, strlen(shellName));
-
-        /*
-        * Reads incoming user's information(s) as uint8_t pointer of max size BUFFER_SIZE
-        * Blocks until it receives user's data
-        * STDIN_FILENO : stand for POSIX's standard input keyboard
-        */ 
-        bytes_read = read(STDIN_FILENO, buffer, BUFFER_SIZE - 1);
-
-        if (handleCommand(buffer) == 1 ) {
-            break; // Exit the loop if handleCommand returns 1
-        }
+        shellState = shellRunning();
+        if(shellState == -1)break;
     }
 
-    // is returned when everything is going wonderfully well
     return EXIT_SUCCESS;
 }
-/*
-* strncmp() function from string lib compare n-th first bytes of buffer char pointer
-* with given reference "exit".
-* 3 cases are possible either each string compared are equal or inferior or superior 
-* to one another, if they are equal it returns 0 (what we want to verify).
-*/
-int handleCommand(const char* buffer) {
-    if (strcmp(buffer, FORTUNECMD) == 0) {
+
+
+// SHELL FUNCTIONS //
+int manageUserCmd(const char* cmd){
+    if (strcmp(cmd, shellFortuneCmd) == 0) {
         doFortuneCmdMethod();
-    } else if (strcmp(buffer, DATECMD) == 0) {
+    } else if (strcmp(cmd, shellDateCmd) == 0) {
         doDateCmdMethod();
-    } else if (strcmp(buffer, EXITCMD) == 0) {
+    } else if (strcmp(cmd, shellExitCmd) == 0) {
         doExitCmdMethod();
-        return 1; // Signal to exit
+        return -1; 
     } else {
-        write(STDOUT_FILENO, "Unknown command\n", 15);
+        unknownCmdPrompt();
     }
-    return 0; // Continue
+    return 0; 
 }
 
 
-/*
-* Check on user request to display current date for time zone CET
-*/
+int shellRunning(void){
+    shellnamePrompt();
+    const char* shellUserCmd = shellReading();
+    if(shellUserCmd == NULL)return -1;
+
+    int shellState = manageUserCmd(shellUserCmd);
+
+    return shellState;
+}
+
+void shellInit(void){
+    welcomePrompt();
+}
+
+const char* shellReading(void){
+
+    ssize_t bytesRead = read(STDIN_FILENO, shellUserCmd, BUFFER_SIZE - 1);
+    if (bytesRead < 0) {
+        return NULL;
+    }
+
+    shellUserCmd[bytesRead] = '\0'; // Terminer la chaîne
+    shellUserCmd[strcspn(shellUserCmd, "\n")] = '\0'; // Supprimer le \n
+    return (const char*)shellUserCmd;
+}
+
+// SHELL PROMPTS //
+void welcomePrompt(void){
+    write(STDOUT_FILENO, shellWelcomeMsg, strlen(shellWelcomeMsg));
+}
+
+void shellnamePrompt(void){
+    write(STDOUT_FILENO, shellNameMsg, strlen(shellNameMsg));
+}
+
+void exitPrompt(void){
+    write(STDOUT_FILENO, exitMsg, strlen(exitMsg));
+}
+
+void unknownCmdPrompt(void){
+    write(STDOUT_FILENO, unknownCmdMsg, strlen(unknownCmdMsg));
+}
+
+// SHELL CMD FUNCTION //
 void doDateCmdMethod(void){
     time_t now;
     struct tm *local_time;
@@ -82,16 +102,10 @@ void doDateCmdMethod(void){
     tzset();
 }
 
-/*
-* Check on user request to display fortune teller
-*/
 void doFortuneCmdMethod(void){
-    write(STDOUT_FILENO, "You will have 20/20 at this lab\n", 32);
+    write(STDOUT_FILENO, fortuneMsg, strlen(fortuneMsg));
 }
 
-/*
-* Check on user request exit
-*/
 void doExitCmdMethod(void){
     write(STDOUT_FILENO, "Bye bye...\n", 11);
 }

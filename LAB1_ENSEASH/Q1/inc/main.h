@@ -3,15 +3,33 @@
 * LAB 1 ENSEA SH
 */
 #ifndef MAIN_H // prevent header redifnition in preprocessus 
-#define MAIN_H // define the only MAIN_H header
+#define MAIN_H 
 
 
-#include <string.h> // useful for memory management
-#include <unistd.h> // access to POSIX OS API
-#include <stdlib.h> // basic utilities for C programming
+#include <string.h> 
+#include <unistd.h> 
+#include <stdlib.h> 
 
+#define BUFFER_SIZE 256
 
+// const char* (string) magic shell prompt 
+const char* shellName = "enseash % ";
+const char* shellWelcomeMsg = "Welcome to ENSEA magic Shell.\nType 'exit' to quit.\n";
 
-int main(int argc, char *argv[]); // definition of main method
+// max buffer size of incoming user cmd
+char shellUserCmd[BUFFER_SIZE];
 
-#endif // end of heqder definition
+// MAIN FUNCTION //
+int main(int /*argc*/, char** /*argv*/); 
+
+// SHELL PROMPTS //
+void welcomePrompt(void);
+void shellnamePrompt(void);
+void exitPrompt(void);
+
+// SHELL FUNCTIONS //
+void shellInit(void);
+int shellRunning(void);
+int manageUserCmd(const char* cmd);
+
+#endif 
