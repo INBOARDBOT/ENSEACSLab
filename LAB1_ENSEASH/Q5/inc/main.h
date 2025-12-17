@@ -13,19 +13,45 @@
 #include <sys/wait.h>
 #include <stdio.h>
 
-#define BUFFER_SIZE 256
 
-// const char* (string) magic shell prompt 
-const char* shellNameMsg    = "enseash % ";
+// Shell State Logic
+#define SHELL_CONTINUE   0
+#define SHELL_EXIT_CODE  -1
+#define MIN_BYTES_READ   0
+
+// Buffer and Size Limits
+#define BUFFER_SIZE       256
+#define MAX_ARGS          4
+#define STATUS_STR_SIZE   16
+#define VAL_STR_SIZE      4
+#define ASCII_OFFSET_ZERO '0'
+
+// Numerical Constants
+#define MS_PER_SEC       1000
+#define NS_PER_MS        1000000
+#define BASE_10          10
+#define HUNDREDS_PLACE   100
+#define INITIAL_TIME     0
+
+// PID REFs
+#define CHILD_PID            0
+#define WAIT_OPTIONS_DEFAULT 0
+#define EXIT_SUCCESS_CODE    0
+
+
+// Strings and Characters
+const char* shellNameMsg    = "enseash";
 const char* shellWelcomeMsg = "Welcome to ENSEA magic Shell.\nType 'exit' to quit.\n";
 const char* unknownCmdMsg   = "Unknown command\n";
 const char* exitMsg         = "Bye bye...\n";
-const char* fortuneMsg      = "You will have 20/20 at this lab\n";
 
-// Magic Shell command types
-const char* shellFortuneCmd = "fortune";
-const char* shellDateCmd    = "date";
+const char* shellNameSepMsg = " % ";
 const char* shellExitCmd    = "exit";
+const char* signPrefix      = "sign";
+
+const char  endStringChar     = '\0';
+const char*  newlineStringChar = "\n";
+const char* argSeparator      = " ";
 
 // global variables
 char shellUserCmd[BUFFER_SIZE];
@@ -35,13 +61,9 @@ long execProcTime = 0;
 // MAIN FUNCTION //
 int main(int /*argc*/, char** /*argv*/); 
 
-// SHELL PROMPTS //
-void welcomePrompt(void);
-void shellnamePrompt(void);
-void exitPrompt(void);
-void unknownCmdPrompt(void);
 
 // SHELL FUNCTIONS //
+void shellnamePrompt(void);
 void shellInit(void);
 int shellRunning(void);
 int manageUserCmd(const char* cmd);
@@ -49,9 +71,7 @@ const char* shellReading(void);
 void shellWritePrompt(const char* shellprompt);
 
 // SHELL CMD FUNCTION //
-void doDateCmdMethod(void);
-void doFortuneCmdMethod(void);
-void doExitCmdMethod(void);
+int doExitCmdMethod(void);
 void executeExternalCommand(const char* cmd);
 
 // PROCESS FUNC //

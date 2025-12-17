@@ -23,7 +23,6 @@ char shellUserCmd[BUFFER_SIZE];
 int main(int /*argc*/, char** /*argv*/); 
 
 // SHELL PROMPTS //
-void welcomePrompt(void);
 void shellnamePrompt(void);
 void exitPrompt(void);
 

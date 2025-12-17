@@ -1,57 +1,46 @@
-/*
-* LAB made by JULIEN BURGER and ALEKSANDAR DJOKIC
-* LAB 1 ENSEA SH
-*/
-#ifndef MAIN_H // prevent header redifnition in preprocessus 
+#ifndef MAIN_H 
 #define MAIN_H 
-
 
 #include <string.h> 
 #include <unistd.h> 
 #include <stdlib.h> 
-#include <time.h>
 #include <sys/wait.h>
 #include <stdio.h>
 
-#define BUFFER_SIZE 256
+// Shell State Logic
+#define SHELL_CONTINUE   0
+#define SHELL_EXIT_CODE  -1
+#define MIN_BYTES_READ   0
 
-// const char* (string) magic shell prompt 
-const char* shellNameMsg    = "enseash % ";
-const char* shellWelcomeMsg = "Welcome to ENSEA magic Shell.\nType 'exit' to quit.\n";
-const char* unknownCmdMsg   = "Unknown command\n";
-const char* exitMsg         = "Bye bye...\n";
-const char* fortuneMsg      = "You will have 20/20 at this lab\n";
+// Buffer and Size Limits
+#define BUFFER_SIZE      256
 
-// Magic Shell command types
-const char* shellFortuneCmd = "fortune";
-const char* shellDateCmd    = "date";
-const char* shellExitCmd    = "exit";
+// PID REFs
+#define CHILD_PID            0
+#define WAIT_OPTIONS_DEFAULT 0
 
-// global variables
+// Strings and Characters
+const char* shellNameMsg      = "enseash";
+const char* shellWelcomeMsg   = "Welcome to ENSEA magic Shell.\nType 'exit' to quit.\n";
+const char* exitMsg           = "Bye bye...\n";
+const char* shellNameSepMsg   = " % ";
+const char* shellExitCmd      = "exit";
+const char  endStringChar     = '\0';
+const char* newlineStringChar = "\n";
+
+// Global variables
 char shellUserCmd[BUFFER_SIZE];
 int shellcmdexit = 0; 
-long execProcTime = 0;
 
-// MAIN FUNCTION //
+// FUNCTION PROTOTYPES
 int main(int /*argc*/, char** /*argv*/); 
-
-// SHELL PROMPTS //
-void welcomePrompt(void);
-void shellnamePrompt(void);
-void exitPrompt(void);
-void unknownCmdPrompt(void);
-
-// SHELL FUNCTIONS //
 void shellInit(void);
 int shellRunning(void);
 int manageUserCmd(const char* cmd);
 const char* shellReading(void);
 void shellWritePrompt(const char* shellprompt);
-
-// SHELL CMD FUNCTION //
-void doDateCmdMethod(void);
-void doFortuneCmdMethod(void);
-void doExitCmdMethod(void);
+void shellnamePrompt(void);
+int doExitCmdMethod(void);
 void executeExternalCommand(const char* cmd);
 
-#endif 
+#endif

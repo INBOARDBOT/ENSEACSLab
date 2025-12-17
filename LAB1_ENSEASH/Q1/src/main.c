@@ -26,7 +26,7 @@ int manageUserCmd(const char* cmd){
 
 
 int shellRunning(void){
-    shellnamePrompt();
+    write(STDOUT_FILENO, shellName, strlen(shellName));
     ssize_t bytesRead = read(STDIN_FILENO, shellUserCmd, BUFFER_SIZE - 1);
     if (bytesRead <= 0) {
         return -1;
@@ -37,17 +37,7 @@ int shellRunning(void){
 }
 
 void shellInit(void){
-    welcomePrompt();
-}
-
-// SHELL PROMPTS //
-
-void welcomePrompt(void){
     write(STDOUT_FILENO, shellWelcomeMsg, strlen(shellWelcomeMsg));
-}
-
-void shellnamePrompt(void){
-    write(STDOUT_FILENO, shellName, strlen(shellName));
 }
 
 void exitPrompt(void){
