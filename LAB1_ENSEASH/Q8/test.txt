@@ -1,0 +1,6 @@
+enseash
+inc
+Makefile
+src
+test.txt
+tmpbuild
