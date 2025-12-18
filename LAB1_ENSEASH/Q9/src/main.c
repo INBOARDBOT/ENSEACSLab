@@ -1,5 +1,13 @@
 #include "main.h"
 
+// Global variables
+char shellUserCmd[BUFFER_SIZE];
+char* shellCmdArgs[MAX_ARGS + 1];
+Job_t jobs[MAX_JOBS] = {0};
+int shellcmdexit = 0; 
+long execProcTime = 0;
+
+
 
 int main(int /*argc*/, char** /*argv*/) {
     shellInit();
@@ -19,24 +27,31 @@ int manageUserCmd(const char* cmd) {
         return doExitCmdMethod();
     }
 
-    char* pipePos = strchr(cmd, PIPE_SYMBOL_CHAR);
-    if (pipePos != NULL) {
-        executePipeCmnd(cmd);
-    } else {
-        parseShellUserInput(cmd);
-        executeExternalCommand();
+    Redirect_t redirectState = RedirectCmd(cmd);
+    
+    switch(redirectState){
+        case GOTO_PIPEMANAGEMENT:
+            executePipeCmnd(cmd);
+            break;
+        case GOTO_CMDMANAGEMENT:
+            parseShellUserInput(cmd);
+            executeExternalCommand();
+            break;
+        default:
+            break;
     }
+
     return SHELL_CONTINUE;
 }
 
 int shellRunning(void){
-    checkBackgroundJobs();
+    checkBackgroundJobs(); // Poll for finished background tasks
     shellnamePrompt();
-    const char* shellUserCmd = shellReading();
+    const char* userInput = shellReading();
+    
+    if (strlen(userInput) == 0) return SHELL_CONTINUE;
 
-    int shellState = manageUserCmd(shellUserCmd);
-
-    return shellState;
+    return manageUserCmd(userInput);
 }
 
 void shellInit(void){
@@ -67,7 +82,6 @@ int doExitCmdMethod(void){
 void shellnamePrompt(void){
     char prompt[BUFFER_SIZE];
 
-    // strcpy because cant assign const char * fixed char[] 
     strcpy(prompt, shellNameMsg);
 
     if (WIFEXITED(shellcmdexit)) {
@@ -109,37 +123,24 @@ void executeExternalCommand(void) {
     struct rusage usage;
     int isBackground = 0;
 
-    // Determine if the command is background (find the last argument)
-    int last = 0;
-    while (shellCmdArgs[last] != NULL) last++;
-    if (last > 0 && strcmp(shellCmdArgs[last-1], "&") == 0) {
-        isBackground = 1;
-        shellCmdArgs[last-1] = NULL; 
-    }
+    findBckgrndProcessCmd(&isBackground);
 
     pid_t pid = fork();
     if (pid == CHILD_PID) {
+        manageFileDescriptor(); 
         execvp(shellCmdArgs[0], shellCmdArgs);
         perror(cmdErrorMsg);
         exit(EXIT_FAILURE);
     } else if (pid > CHILD_PID) {
         if (!isBackground) {
-            wait4(pid, &status, 0, &usage);
+            wait4(pid, &status, BLOCK_UNTIL_CHILD_FINISHES, &usage);
             shellcmdexit = status;
-
+            
             long user_ms = (usage.ru_utime.tv_sec * 1000) + (usage.ru_utime.tv_usec / 1000);
             long sys_ms = (usage.ru_stime.tv_sec * 1000) + (usage.ru_stime.tv_usec / 1000);
             execProcTime = user_ms + sys_ms;
         } else {
-            for (int j = 0; j < MAX_JOBS; j++) {
-                if (!jobs[j].current_state) {
-                    jobs[j].pid = pid;
-                    strcpy(jobs[j].cmdName, shellCmdArgs[0]);
-                    jobs[j].current_state = 1;
-                    printf("[%d] %d\n", j + 1, pid);
-                    break;
-                }
-            }
+            actualizeProcessTable(pid);
         }
     }
 }
@@ -211,7 +212,39 @@ void executePipeCmnd(const char* cmd) {
     waitpid(pid1, NULL, 0);
     waitpid(pid2, &shellcmdexit, 0); 
 
+
     free(cmdCopy);
+}
+
+void manageFileDescriptor(void){
+    if (outputFile == NULL && inputFile == NULL){
+        return;
+    }
+
+    if(outputFile != NULL){
+        int fdOut = open(outputFile, O_WRONLY | O_CREAT | O_TRUNC, PERMISION_RIGHT_FILE_DESCRIPTOR);
+        if (fdOut == FILE_DESCRIPTOR_NOT_OPEN) {
+            perror(fdOutErrorMsg);
+            exit(EXIT_FAILURE);
+        }
+        dup2(fdOut, STDOUT_FILENO); 
+        close(fdOut);
+    }
+               
+    if(inputFile != NULL){
+        int fdIn = open(inputFile, O_RDONLY);
+        if (fdIn == FILE_DESCRIPTOR_NOT_OPEN) {
+            perror(fdInErrorMsg);
+            exit(EXIT_FAILURE);
+        }
+        dup2(fdIn, STDIN_FILENO);   
+        close(fdIn);    
+    }            
+}
+
+Redirect_t RedirectCmd(const char* cmd){
+    char* pipePos = strchr(cmd, PIPE_SYMBOL_CHAR);
+    return pipePos != NULL ? GOTO_PIPEMANAGEMENT : GOTO_CMDMANAGEMENT;
 }
 
 void checkBackgroundJobs() {
@@ -219,11 +252,39 @@ void checkBackgroundJobs() {
     struct rusage usage;
     for (int i = 0; i < MAX_JOBS; i++) {
         if (jobs[i].current_state) {
-            pid_t ret = wait4(jobs[i].pid, &status, WNOHANG, &usage);
-            if (ret > 0) {
+    
+            pid_t ret = wait4(jobs[i].pid, &status, NONBLOCKINGUNTIL_CHILD_FINISHES, &usage);
+            
+            if (ret > 0) { 
                 printf("\n[%d]+ Ended: %s &\n", i + 1, jobs[i].cmdName);
                 jobs[i].current_state = 0;
+                
+                shellcmdexit = status;
+                long user_ms = (usage.ru_utime.tv_sec * 1000) + (usage.ru_utime.tv_usec / 1000);
+                long sys_ms = (usage.ru_stime.tv_sec * 1000) + (usage.ru_stime.tv_usec / 1000);
+                execProcTime = user_ms + sys_ms;
             }
+        }
+    }
+}
+
+void findBckgrndProcessCmd(int* backgroundState){
+    int last = 0;
+    while (shellCmdArgs[last] != NULL) last++;
+    if (last > 0 && strcmp(shellCmdArgs[last-1], "&") == 0) {
+        *backgroundState = 1;
+        shellCmdArgs[last-1] = NULL; 
+    }
+}
+
+void actualizeProcessTable(pid_t processID){
+    for (int j = 0; j < MAX_JOBS; j++) {
+        if (!jobs[j].current_state) {
+            jobs[j].pid = processID;
+            strncpy(jobs[j].cmdName, shellCmdArgs[0], BUFFER_SIZE);
+            jobs[j].current_state = 1;
+            printf("[%d] %d\n", j + 1, processID); 
+            break;
         }
     }
 }
