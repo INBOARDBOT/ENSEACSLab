@@ -13,13 +13,15 @@
 #include <stdio.h>
 #include <fcntl.h>
 
+
+
 // Buffer and Size Limits
 #define BUFFER_SIZE       256
 #define MAX_ARGS          4
 #define STATUS_STR_SIZE   16
 #define VAL_STR_SIZE      4
 #define ASCII_OFFSET_ZERO '0'
-
+ 
 // Numerical Constants
 #define MS_PER_SEC       1000
 #define NS_PER_MS        1000000
@@ -39,9 +41,17 @@
 
 // File descriptor state
 #define FILE_DESCRIPTOR_NOT_OPEN -1
+#define PERMISION_RIGHT_FILE_DESCRIPTOR 0644
 
 // pipeline
 #define PIPE_SYMBOL "|"
+#define PIPE_SYMBOL_CHAR '|'
+
+// manage which function to use depending on cmd input
+typedef enum {
+    GOTO_PIPEMANAGEMENT,
+    GOTO_CMDMANAGEMENT
+}Redirect_t;
 
 // Strings and Characters
 const char* shellNameMsg    = "enseash";
@@ -84,6 +94,8 @@ int doExitCmdMethod(void);
 void executeExternalCommand(void);
 void appendStatus(char *prompt, const char *type, int value, long timeMs);
 void handleRedirection(char *symbol, char *filename);
+void manageFileDescriptor(void);
 void executePipeCmnd(const char* cmd);
+Redirect_t RedirectCmd(const char* cmd);
 
 #endif

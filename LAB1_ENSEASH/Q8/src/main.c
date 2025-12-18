@@ -19,13 +19,20 @@ int manageUserCmd(const char* cmd) {
         return doExitCmdMethod();
     }
 
-    char* pipePos = strchr(cmd, PIPE_SYMBOL);
-    if (pipePos != NULL) {
-        executePipeCmnd(cmd);
-    } else {
-        parseShellUserInput(cmd);
-        executeExternalCommand();
+    Redirect_t redirectState = RedirectCmd(cmd);
+    
+    switch(redirectState){
+        case GOTO_PIPEMANAGEMENT:
+            executePipeCmnd(cmd);
+            break;
+        case GOTO_CMDMANAGEMENT:
+            parseShellUserInput(cmd);
+            executeExternalCommand();
+            break;
+        default:
+            break;
     }
+
     return SHELL_CONTINUE;
 }
 
@@ -107,29 +114,11 @@ void executeExternalCommand(void) {
     struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC, &start);
     
-    pid_t pid = fork();
+    pid_t pid = fork(); 
     
     if (pid == CHILD_PID) {
-        if (outputFile != NULL) {
-            int fdOut = open(outputFile, O_WRONLY | O_CREAT | O_TRUNC);
-            if (fdOut == FILE_DESCRIPTOR_NOT_OPEN) {
-                perror(fdOutErrorMsg);
-                exit(EXIT_FAILURE);
-            }
-            dup2(fdOut, STDOUT_FILENO); 
-            close(fdOut);               
-        }
-
-        if (inputFile != NULL) {
-            int fdIn = open(inputFile, O_RDONLY);
-            if (fdIn == FILE_DESCRIPTOR_NOT_OPEN) {
-                perror(fdInErrorMsg);
-                exit(EXIT_FAILURE);
-            }
-            dup2(fdIn, STDIN_FILENO);   
-            close(fdIn);                
-        }
-
+        
+        manageFileDescriptor();
         execvp(shellCmdArgs[0], shellCmdArgs);
         
         perror(cmdErrorMsg);
@@ -182,7 +171,6 @@ void handleRedirection(char *symbol, char *filename) {
     }
 }
 
-
 void executePipeCmnd(const char* cmd) {
     // takes incoming data from both sides of the pipeline
     char* cmdCopy = strdup(cmd);
@@ -222,4 +210,35 @@ void executePipeCmnd(const char* cmd) {
 
 
     free(cmdCopy);
+}
+
+void manageFileDescriptor(void){
+    if (outputFile == NULL && inputFile == NULL){
+        return;
+    }
+
+    if(outputFile != NULL){
+        int fdOut = open(outputFile, O_WRONLY | O_CREAT | O_TRUNC, PERMISION_RIGHT_FILE_DESCRIPTOR);
+        if (fdOut == FILE_DESCRIPTOR_NOT_OPEN) {
+            perror(fdOutErrorMsg);
+            exit(EXIT_FAILURE);
+        }
+        dup2(fdOut, STDOUT_FILENO); 
+        close(fdOut);
+    }
+               
+    if(inputFile != NULL){
+        int fdIn = open(inputFile, O_RDONLY);
+        if (fdIn == FILE_DESCRIPTOR_NOT_OPEN) {
+            perror(fdInErrorMsg);
+            exit(EXIT_FAILURE);
+        }
+        dup2(fdIn, STDIN_FILENO);   
+        close(fdIn);    
+    }            
+}
+
+Redirect_t RedirectCmd(const char* cmd){
+    char* pipePos = strchr(cmd, PIPE_SYMBOL_CHAR);
+    return pipePos != NULL ? GOTO_PIPEMANAGEMENT : GOTO_CMDMANAGEMENT;
 }
