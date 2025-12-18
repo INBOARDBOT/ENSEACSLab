@@ -1,6 +1,16 @@
 #include "main.h"
 
 
+// Global variables
+char shellUserCmd[BUFFER_SIZE];
+char* shellCmdArgs[MAX_ARGS + 1];
+int shellcmdexit = 0; 
+long execProcTime = 0;
+
+char* inputFile = NULL;  // Track < file
+char* outputFile = NULL; // Track > file
+
+
 int main(int /*argc*/, char** /*argv*/) {
     shellInit();
     while (1) {
@@ -109,26 +119,8 @@ void executeExternalCommand(void) {
     pid_t pid = fork();
     
     if (pid == CHILD_PID) {
-        if (outputFile != NULL) {
-            int fdOut = open(outputFile, O_WRONLY | O_CREAT | O_TRUNC);
-            if (fdOut == FILE_DESCRIPTOR_NOT_OPEN) {
-                perror(fdOutErrorMsg);
-                exit(EXIT_FAILURE);
-            }
-            dup2(fdOut, STDOUT_FILENO); 
-            close(fdOut);               
-        }
 
-        if (inputFile != NULL) {
-            int fdIn = open(inputFile, O_RDONLY);
-            if (fdIn == FILE_DESCRIPTOR_NOT_OPEN) {
-                perror(fdInErrorMsg);
-                exit(EXIT_FAILURE);
-            }
-            dup2(fdIn, STDIN_FILENO);   
-            close(fdIn);                
-        }
-
+        manageFileDescriptor();
         execvp(shellCmdArgs[0], shellCmdArgs);
         
         perror(cmdErrorMsg);
@@ -179,4 +171,30 @@ void handleRedirection(char *symbol, char *filename) {
     } else if (strcmp(symbol, stdOutRedirection) == 0) {
         inputFile = filename;
     }
+}
+
+void manageFileDescriptor(void){
+    if (outputFile == NULL && inputFile == NULL){
+        return;
+    }
+
+    if(outputFile != NULL){
+        int fdOut = open(outputFile, O_WRONLY | O_CREAT | O_TRUNC, PERMISION_RIGHT_FILE_DESCRIPTOR);
+        if (fdOut == FILE_DESCRIPTOR_NOT_OPEN) {
+            perror(fdOutErrorMsg);
+            exit(EXIT_FAILURE);
+        }
+        dup2(fdOut, STDOUT_FILENO); 
+        close(fdOut);
+    }
+               
+    if(inputFile != NULL){
+        int fdIn = open(inputFile, O_RDONLY);
+        if (fdIn == FILE_DESCRIPTOR_NOT_OPEN) {
+            perror(fdInErrorMsg);
+            exit(EXIT_FAILURE);
+        }
+        dup2(fdIn, STDIN_FILENO);   
+        close(fdIn);    
+    }            
 }

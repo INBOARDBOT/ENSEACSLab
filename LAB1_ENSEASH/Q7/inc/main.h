@@ -20,6 +20,7 @@
 #define VAL_STR_SIZE      4
 #define ASCII_OFFSET_ZERO '0'
 
+
 // Numerical Constants
 #define MS_PER_SEC       1000
 #define NS_PER_MS        1000000
@@ -39,6 +40,8 @@
 
 // File descriptor state
 #define FILE_DESCRIPTOR_NOT_OPEN -1
+#define PERMISION_RIGHT_FILE_DESCRIPTOR 0644
+
 
 // Strings and Characters
 const char* shellNameMsg    = "enseash";
@@ -58,14 +61,7 @@ const char* fdOutErrorMsg      = "enseash: open output";
 const char* fdInErrorMsg       = "enseash: open input";
 const char* cmdErrorMsg        = "enseash: command not found";
 
-char* inputFile = NULL;  // Track < file
-char* outputFile = NULL; // Track > file
 
-// Global variables
-char shellUserCmd[BUFFER_SIZE];
-char* shellCmdArgs[MAX_ARGS + 1];
-int shellcmdexit = 0; 
-long execProcTime = 0;
 
 // Function Prototypes
 int main(int argc, char** argv); 
@@ -80,6 +76,6 @@ int doExitCmdMethod(void);
 void executeExternalCommand(void);
 void appendStatus(char *prompt, const char *type, int value, long timeMs);
 void handleRedirection(char *symbol, char *filename);
-
+void manageFileDescriptor(void);
 
 #endif
